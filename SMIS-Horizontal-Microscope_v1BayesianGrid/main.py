@@ -106,7 +106,7 @@ def velocity(motorNb, velocity):                 #On applique la vélocitée dé
 
 def acceleration(motorNb, acceleration):        #On applique l'accélération désirée
     execution(ser, 'ACC' + str(motorNb) + '=' + str(acceleration))
-    return()
+    return()     
 
 def deceleration(motorNb, deceleration):       #On applique la décélération désirée
     execution(ser, 'DACC' + str(motorNb) + '=' + str(deceleration))
@@ -164,7 +164,7 @@ c_z = 1 # Z conversion parameter
 
 #----------------Initialisation scan------------------------
 
-devices = sb.list_devices()  # On cherche un spectrometre
+
 
 # ------------------------CLASSES------------------------------------------------------------
 class AdvancedparametersWindow(QtGui.QDialog, Advancedparameters_ui.Ui_Advanced_parameters_window):
@@ -772,6 +772,11 @@ class MainHorizontalWindow(QtGui.QMainWindow, Horizontal_ui.Ui_MainWindow):
 
 
     def Scan_process(self):                      # This function allow us to choose between Grid&bayesian or Bayesian
+        try :
+            devices = sb.list_devices()  # On cherche un spectrometre
+            spec = sb.Spectrometer(devices[0])  # We will use the first spectrometer found which is the Hr4000
+        except :
+            info_sb = QtGui.QMessageBox.question(None, 'HR4000 Information', "Make sure to disconnect the spectrometer on the previous program.")
 
         def text_change(self):                       # The label is erased if it's not a parameter of the next function
             if self.Step_t.text() == 'Step Y,Z ':
@@ -789,7 +794,7 @@ class MainHorizontalWindow(QtGui.QMainWindow, Horizontal_ui.Ui_MainWindow):
             def Scan(self):
 
                 from statistics import mean
-                spec = sb.Spectrometer(devices[0])  # We will use the first spectrometer found which is the Hr4000
+
                 intTval = convert_str_int(self.intT.text(), 1000)   # We read the integration time choosen by the user
                 spec.integration_time_micros(intTval)  # Integration time in  micro seconds * 1000 -> ms
                 if c == 1:
@@ -823,11 +828,11 @@ class MainHorizontalWindow(QtGui.QMainWindow, Horizontal_ui.Ui_MainWindow):
                 for w in range(0, diameterZ, 2*pasZ):                     # Loop for the lateral movement
                     for i in range(0, diameterY, pasY):                    # Loop for the vertical movement (up)
 
-                        #L = spec.wavelengths()                # Wavelengths list
-
+                        L = spec.wavelengths()                # Wavelengths list
                         l = spec.intensities()                 # Intensities list
                         s = slice(1500, 2100)                  # Those slice allow us to choose at which wavelenght's range we want to look at
                         m = slice(2500, 3500)
+                        wavelength = L[s]
                         mouve(5, pasY, 'RELAT')
                         LIM.append(max(l[s]))       # We save the intensitie's maximum for each point
                         Y = execution(ser, '?CNT' + str(5))        # We read the Y position value
@@ -839,12 +844,12 @@ class MainHorizontalWindow(QtGui.QMainWindow, Horizontal_ui.Ui_MainWindow):
                         threshold = facteur_t*mean(l[m])     #We set the threshold
                         print("LIM[-1] :", LIM[-1])
                         print("Threshold: ", threshold)
-
+                        index_max = l[s].tolist().index(max(l[s]))
 
                         if LIM[-1] < LIM[-2]:          # This loop allow us to find the highest value above the threshold and stop the script when we find it
-                            if max(l[s]) > threshold:
+                            if max(l[s]) > threshold and max(l[s])>1.5*l[index_max]:
                                 break
-                            elif LIM[-2] > threshold:
+                            elif LIM[-2] > threshold and max(l[s])>1.5*l[index_max]:
                                 break
                         else:
                             continue
@@ -871,9 +876,9 @@ class MainHorizontalWindow(QtGui.QMainWindow, Horizontal_ui.Ui_MainWindow):
                         print("LIM[-1] :", LIM[-1])
                         print("Threshold: ", threshold)
                         if LIM[-1] < LIM[-2]:
-                            if max(l[s]) > threshold:
+                            if max(l[s]) > threshold and max(l[s])>1.5*l[index_max]:
                                 break
-                            elif LIM[-2] > threshold:
+                            elif LIM[-2] > threshold and max(l[s])>1.5*l[index_max]:
                                 break
                         else:
                             continue
@@ -889,7 +894,7 @@ class MainHorizontalWindow(QtGui.QMainWindow, Horizontal_ui.Ui_MainWindow):
 
                 def zoom_scan():
 
-                    choice = QtGui.QMessageBox.question(self, 'Precision Scan', "Do you want to get a more accurate point?",       # We create a Message box and a choice for the user
+                    choice = QtGui.QMessageBox.question(self, 'Precision Scan', "Do you want to do the bayesian optimization?",       # We create a Message box and a choice for the user
                                                         QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
                     if choice == QtGui.QMessageBox.Yes:
 
@@ -974,13 +979,13 @@ class MainHorizontalWindow(QtGui.QMainWindow, Horizontal_ui.Ui_MainWindow):
                 print("Z Max :", Z_max)
                 print("Y Max : -", Y_max)
                 if c == 1 :
-                    self.Yscan.setText(str(Y_max*-1))
-                    self.Zscan.setText(str(Z_max*1))
-                    self.Imax.setText(str(max(LIM)))
+                    self.Yscan.setText(str(round((Y_max*-1),3)))
+                    self.Zscan.setText(str(round(Z_max*1,3)))
+                    self.Imax.setText(str(round(max(LIM),3)))
                 else:
-                    self.Yscan.setText(str(Y_max * -0.05))
-                    self.Zscan.setText(str(Z_max * 0.025))
-                    self.Imax.setText(str(max(LIM)))
+                    self.Yscan.setText(str(round(Y_max * -0.05,3)))
+                    self.Zscan.setText(str(round(Z_max * 0.025,3)))
+                    self.Imax.setText(str(round(max(LIM),3)))
                 mouve(5, Y_max,'ABSOL')               # We move right on the maximum at end of the optimization process
                 mouve(6, Z_max, 'ABSOL')
                 while execution(ser, "?ASTAT") != "RRRRRRUUU":
