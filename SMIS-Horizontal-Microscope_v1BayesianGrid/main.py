@@ -106,7 +106,7 @@ def velocity(motorNb, velocity):                 #On applique la vélocitée dé
 
 def acceleration(motorNb, acceleration):        #On applique l'accélération désirée
     execution(ser, 'ACC' + str(motorNb) + '=' + str(acceleration))
-    return()     
+    return()
 
 def deceleration(motorNb, deceleration):       #On applique la décélération désirée
     execution(ser, 'DACC' + str(motorNb) + '=' + str(deceleration))
@@ -1002,7 +1002,8 @@ class MainHorizontalWindow(QtGui.QMainWindow, Horizontal_ui.Ui_MainWindow):
             def Bayesian(self):
 
                 from statistics import mean
-                spec = sb.Spectrometer(devices[0])
+                #spec = sb.Spectrometer(devices[0])
+                #spec = sb.Spectrometer(devices[0])
                 intTval = convert_str_int(self.intT.text(), 1000)
                 spec.integration_time_micros(intTval)
                 if c == 1:
